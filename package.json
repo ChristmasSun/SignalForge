@@ -24,13 +24,13 @@
     "fast-glob": "^3.3.3",
     "playwright-core": "^1.58.2"
   },
-  "homepage": "https://github.com/vedan/BrowserbaseObsidian#readme",
+  "homepage": "https://github.com/vedan/SignalForge#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vedan/BrowserbaseObsidian.git"
+    "url": "git+https://github.com/vedan/SignalForge.git"
   },
   "bugs": {
-    "url": "https://github.com/vedan/BrowserbaseObsidian/issues"
+    "url": "https://github.com/vedan/SignalForge/issues"
   },
   "bin": {
     "signalforge": "src/cli.js"

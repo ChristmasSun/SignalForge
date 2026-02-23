@@ -1,8 +1,8 @@
-# SignalForge (v1 MVP)
+# SignalForge
 
 SignalForge turns rough research notes into auto-generated findings in your Obsidian vault.
 
-## What this version does
+## What It Does
 - Reads all markdown files in your vault.
 - Detects research intents from:
   - explicit `#investigate ...` tags
@@ -44,13 +44,3 @@ This tool also picks up natural phrases like:
 - `read about Letta code`
 - `wondering what ZoComputer is`
 - `something about ZoComputer`
-
-## Publish to GitHub
-```bash
-git init
-git add .
-git commit -m "Initial commit: SignalForge MVP"
-git branch -M main
-git remote add origin https://github.com/vedan/BrowserbaseObsidian.git
-git push -u origin main
-```
