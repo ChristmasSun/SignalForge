@@ -25,11 +25,15 @@ export interface SignalForgeConfig {
   commandArgs: string[];
   dryRun: boolean;
   json: boolean;
+  daemon: boolean;
+  open: boolean;
   force: boolean;
   since?: string;
   vaultDir: string;
   findingsDir: string;
   stateFile: string;
+  loopLockFile: string;
+  lockStaleMinutes: number;
   maxTasks: number;
   maxSourcesPerTask: number;
   maxRetries: number;
@@ -56,6 +60,7 @@ export interface SourceLink {
 export interface ResearchArtifacts {
   sessionId: string | null;
   liveViewUrl: string | null;
+  replayUrl: string | null;
   replayHint: string | null;
   screenshots: string[];
 }
@@ -101,6 +106,7 @@ export interface TaskStateRecord {
   findingPath?: string;
   lastSessionId?: string | null;
   lastLiveViewUrl?: string | null;
+  lastReplayUrl?: string | null;
   lastReplayHint?: string | null;
   lastError?: string;
 }

@@ -9,12 +9,17 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
   const vaultDir = path.resolve(env.VAULT_DIR ?? path.join(process.cwd(), 'vault'));
   const findingsDir = path.resolve(env.FINDINGS_DIR ?? path.join(vaultDir, 'Inbox', 'Findings'));
   const stateFile = path.resolve(env.STATE_FILE ?? path.join(vaultDir, '.signalforge', 'state.json'));
+  const loopLockFile = path.resolve(env.LOOP_LOCK_FILE ?? path.join(vaultDir, '.signalforge', 'loop.lock'));
   const maxTasks = readPositiveInt(env.MAX_TASKS, 5);
   const maxSourcesPerTask = readPositiveInt(env.MAX_SOURCES_PER_TASK, 3);
   const maxRetries = readPositiveInt(env.MAX_RETRIES, 4);
   const retryBaseMinutes = readPositiveInt(env.RETRY_BASE_MINUTES, 5);
   const loopIntervalMinutes = readPositiveInt(readFlagValue(argv, '--interval-minutes') ?? env.LOOP_INTERVAL_MINUTES, 60);
   const loopMaxCycles = readOptionalPositiveInt(readFlagValue(argv, '--max-cycles') ?? env.LOOP_MAX_CYCLES);
+  const lockStaleMinutes = readPositiveInt(
+    readFlagValue(argv, '--lock-stale-minutes') ?? env.LOCK_STALE_MINUTES,
+    180,
+  );
   const since = readSinceArg(argv);
 
   return {
@@ -22,11 +27,15 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
     commandArgs,
     dryRun: flags.has('--dry-run'),
     json: flags.has('--json'),
+    daemon: flags.has('--daemon'),
+    open: flags.has('--open'),
     force: flags.has('--force'),
     since,
     vaultDir,
     findingsDir,
     stateFile,
+    loopLockFile,
+    lockStaleMinutes,
     maxTasks,
     maxSourcesPerTask,
     maxRetries,

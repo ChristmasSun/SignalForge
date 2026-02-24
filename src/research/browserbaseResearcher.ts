@@ -9,7 +9,16 @@ export async function collectSourcesWithBrowserbase(
   task: ResearchTask,
   config: SignalForgeConfig,
   outputDir: string,
-): Promise<{ sources: SourceLink[]; artifacts: { sessionId: string; liveViewUrl: string | null; replayHint: string; screenshots: string[] } }> {
+): Promise<{
+  sources: SourceLink[];
+  artifacts: {
+    sessionId: string;
+    liveViewUrl: string | null;
+    replayUrl: string | null;
+    replayHint: string;
+    screenshots: string[];
+  };
+}> {
   if (!config.browserbase.apiKey || !config.browserbase.projectId) {
     throw new Error('Missing Browserbase credentials.');
   }
@@ -54,6 +63,7 @@ export async function collectSourcesWithBrowserbase(
     artifacts: {
       sessionId: session.id,
       liveViewUrl: live.debuggerFullscreenUrl ?? null,
+      replayUrl: inferReplayUrl(session, live),
       replayHint: `Recording available via Browserbase session ${session.id}`,
       screenshots: [screenshotPath],
     },
@@ -66,4 +76,21 @@ function slug(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
+}
+
+function inferReplayUrl(session: unknown, live: unknown): string | null {
+  const candidates: unknown[] = [
+    (live as { replayUrl?: unknown })?.replayUrl,
+    (live as { recordingUrl?: unknown })?.recordingUrl,
+    (session as { replayUrl?: unknown })?.replayUrl,
+    (session as { recordingUrl?: unknown })?.recordingUrl,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.startsWith('http')) {
+      return candidate;
+    }
+  }
+
+  return null;
 }

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { executeCommand } from '../src/runner.ts';
 import { loadState } from '../src/state.ts';
 import type { Logger } from '../src/logger.ts';
-import type { ResearchResult, ResearchTask, SignalForgeConfig, VaultNote } from '../src/types.ts';
+import type { ResearchResult, SignalForgeConfig } from '../src/types.ts';
 import { loadVaultMarkdown } from '../src/vault.ts';
 
 let tempDir = '';
@@ -47,6 +47,7 @@ describe('runner integration', () => {
     expect(records.length).toBe(1);
     expect(records[0].status).toBe('done');
     expect(records[0].lastSessionId).toBe('s_123');
+    expect(records[0].lastReplayUrl).toBe('https://replay.example.com');
 
     await executeCommand(baseConfig, logger, {
       loadVaultMarkdown,
@@ -86,6 +87,37 @@ describe('runner integration', () => {
     const replayLog = logs.find((entry) => entry.message === 'Replay details');
     expect(replayLog).toBeTruthy();
     expect(replayLog?.meta?.sessionId).toBe('s_123');
+    expect(replayLog?.meta?.replayUrl).toBe('https://replay.example.com');
+  });
+
+  test('loop writes cycle summary output', async () => {
+    const logs: Array<{ level: string; message: string; meta?: Record<string, unknown> }> = [];
+    const logger: Logger = {
+      info: (message, meta) => logs.push({ level: 'info', message, meta }),
+      warn: (message, meta) => logs.push({ level: 'warn', message, meta }),
+      error: (message, meta) => logs.push({ level: 'error', message, meta }),
+    };
+
+    const loopConfig = {
+      ...makeConfig(tempDir, 'loop'),
+      dryRun: true,
+      loopMaxCycles: 1,
+      loopIntervalMinutes: 1,
+    };
+
+    await executeCommand(loopConfig, logger, {
+      loadVaultMarkdown,
+      runResearch: async () => mockResearchResult(),
+      writeFinding: async (_config, task) => {
+        const out = path.join(tempDir, 'Inbox', 'Findings', `${task.query}.md`);
+        await fs.writeFile(out, `# ${task.query}\n`, 'utf8');
+        return out;
+      },
+    });
+
+    const summaryDir = path.join(tempDir, 'Inbox', 'Findings', 'Run Summaries');
+    const files = await fs.readdir(summaryDir);
+    expect(files.length).toBeGreaterThan(0);
   });
 });
 
@@ -95,11 +127,15 @@ function makeConfig(vaultDir: string, command: string, commandArgs: string[] = [
     commandArgs,
     dryRun: false,
     json: false,
+    daemon: false,
+    open: false,
     force: false,
     since: undefined,
     vaultDir,
     findingsDir: path.join(vaultDir, 'Inbox', 'Findings'),
     stateFile: path.join(vaultDir, '.signalforge', 'state.json'),
+    loopLockFile: path.join(vaultDir, '.signalforge', 'loop.lock'),
+    lockStaleMinutes: 180,
     maxTasks: 5,
     maxSourcesPerTask: 3,
     maxRetries: 4,
@@ -132,6 +168,7 @@ function mockResearchResult(): ResearchResult {
     artifacts: {
       sessionId: 's_123',
       liveViewUrl: 'https://live.example.com',
+      replayUrl: 'https://replay.example.com',
       replayHint: 'hint',
       screenshots: [],
     },

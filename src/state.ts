@@ -96,7 +96,12 @@ export function markTaskSuccess(
   record: TaskStateRecord,
   findingPath: string,
   noteMtimeMs: number,
-  artifacts?: { sessionId: string | null; liveViewUrl: string | null; replayHint: string | null },
+  artifacts?: {
+    sessionId: string | null;
+    liveViewUrl: string | null;
+    replayUrl: string | null;
+    replayHint: string | null;
+  },
 ): void {
   record.status = 'done';
   record.attempts = 0;
@@ -106,6 +111,7 @@ export function markTaskSuccess(
   record.findingPath = findingPath;
   record.lastSessionId = artifacts?.sessionId ?? null;
   record.lastLiveViewUrl = artifacts?.liveViewUrl ?? null;
+  record.lastReplayUrl = artifacts?.replayUrl ?? null;
   record.lastReplayHint = artifacts?.replayHint ?? null;
   record.lastNoteMtimeMs = noteMtimeMs;
 }

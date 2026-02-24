@@ -63,11 +63,18 @@ Replay Browserbase metadata for a prior task:
 VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "letta code"
 # or by session id
 VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "bb_session_id"
+# auto-open replay/live url when available
+VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "letta code" --open
 ```
 
 Run a scheduled loop (in-process):
 ```bash
 VAULT_DIR="/path/to/vault" bun run src/cli.ts loop --interval-minutes=60 --max-cycles=8
+```
+
+Run loop as background daemon:
+```bash
+VAULT_DIR="/path/to/vault" bun run src/cli.ts loop --daemon --interval-minutes=60
 ```
 
 ## Validation
@@ -91,3 +98,4 @@ This tool also picks up natural phrases like:
 - Default state path: `<VAULT_DIR>/.signalforge/state.json`
 - Stores retries, last success/failure timestamps, and finding links for each task.
 - Stores last Browserbase session metadata for `replay`.
+- Default lock file: `<VAULT_DIR>/.signalforge/loop.lock` to prevent overlapping loop workers.

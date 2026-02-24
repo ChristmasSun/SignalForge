@@ -15,6 +15,7 @@ export async function runResearch(
   let artifacts: ResearchResult['artifacts'] = {
     sessionId: null,
     liveViewUrl: null,
+    replayUrl: null,
     replayHint: null,
     screenshots: [],
   };

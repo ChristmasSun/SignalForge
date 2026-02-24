@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { extractResearchTasks } from './intents.ts';
+import { acquireLoopLock } from './lock.ts';
 import type { Logger } from './logger.ts';
 import { runResearch as runResearchDefault } from './research/index.ts';
 import {
@@ -60,6 +62,10 @@ export async function executeCommand(
   }
 
   if (config.command === 'loop') {
+    if (config.daemon) {
+      await startLoopDaemon(config, logger);
+      return;
+    }
     await runLoop(config, logger, resolvedDeps);
     return;
   }
@@ -68,14 +74,22 @@ export async function executeCommand(
 }
 
 async function runLoop(config: SignalForgeConfig, logger: Logger, deps: RunnerDeps): Promise<void> {
+  const releaseLock = await acquireLoopLock(config.loopLockFile, config.lockStaleMinutes);
+  logger.info('Acquired loop lock', { lockFile: config.loopLockFile, pid: process.pid });
+
   const maxCycles = config.loopMaxCycles ?? Number.MAX_SAFE_INTEGER;
-  for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
-    logger.info('Starting loop cycle', { cycle, intervalMinutes: config.loopIntervalMinutes });
-    const stats = await runOnce(config, logger, deps);
-    await writeCycleSummary(config, cycle, stats);
-    if (cycle < maxCycles) {
-      await deps.wait(config.loopIntervalMinutes * 60_000);
+  try {
+    for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
+      logger.info('Starting loop cycle', { cycle, intervalMinutes: config.loopIntervalMinutes });
+      const stats = await runOnce(config, logger, deps);
+      await writeCycleSummary(config, cycle, stats);
+      if (cycle < maxCycles) {
+        await deps.wait(config.loopIntervalMinutes * 60_000);
+      }
     }
+  } finally {
+    await releaseLock();
+    logger.info('Released loop lock', { lockFile: config.loopLockFile, pid: process.pid });
   }
 }
 
@@ -228,10 +242,20 @@ async function showReplay(config: SignalForgeConfig, logger: Logger): Promise<vo
     query: record.query,
     sessionId: record.lastSessionId ?? null,
     liveViewUrl: record.lastLiveViewUrl ?? null,
+    replayUrl: record.lastReplayUrl ?? null,
     replayHint: record.lastReplayHint ?? null,
     findingPath: record.findingPath ?? null,
     lastSuccessAt: record.lastSuccessAt ?? null,
   });
+
+  if (config.open) {
+    const url = record.lastReplayUrl ?? record.lastLiveViewUrl ?? null;
+    if (!url) {
+      logger.warn('No openable URL available for replay.', { token });
+      return;
+    }
+    await openUrl(url, logger);
+  }
 }
 
 function resolveRerunTasks(config: SignalForgeConfig, notes: VaultNote[]): ResearchTask[] {
@@ -294,4 +318,46 @@ function emptyStats(): RunStats {
     failed: 0,
     skipped: 0,
   };
+}
+
+async function startLoopDaemon(config: SignalForgeConfig, logger: Logger): Promise<void> {
+  const cliPath = new URL('./cli.ts', import.meta.url).pathname;
+  const args = ['run', cliPath, 'loop', `--interval-minutes=${config.loopIntervalMinutes}`];
+  if (config.loopMaxCycles) {
+    args.push(`--max-cycles=${config.loopMaxCycles}`);
+  }
+  args.push(`--lock-stale-minutes=${config.lockStaleMinutes}`);
+  if (config.json) {
+    args.push('--json');
+  }
+  if (config.dryRun) {
+    args.push('--dry-run');
+  }
+
+  const child = spawn(process.execPath, args, {
+    cwd: process.cwd(),
+    detached: true,
+    stdio: 'ignore',
+    env: process.env,
+  });
+  child.unref();
+  logger.info('Started loop daemon', { pid: child.pid, intervalMinutes: config.loopIntervalMinutes });
+}
+
+async function openUrl(url: string, logger: Logger): Promise<void> {
+  const platform = process.platform;
+  const command = platform === 'darwin' ? 'open' : platform === 'linux' ? 'xdg-open' : null;
+  if (!command) {
+    logger.warn('Auto-open is unsupported on this platform.', { platform, url });
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const child = spawn(command, [url], { stdio: 'ignore' });
+    child.on('error', () => {
+      logger.warn('Failed to open URL automatically.', { url, command });
+      resolve();
+    });
+    child.on('exit', () => resolve());
+  });
 }

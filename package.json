@@ -11,6 +11,7 @@
     "rerun": "bun run src/cli.ts rerun",
     "replay": "bun run src/cli.ts replay",
     "loop": "bun run src/cli.ts loop",
+    "loop:daemon": "bun run src/cli.ts loop --daemon",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

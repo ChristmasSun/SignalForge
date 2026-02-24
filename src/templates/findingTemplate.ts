@@ -63,6 +63,7 @@ ${result.confidenceReasons.map((item) => `- ${item}`).join('\n')}
 - Source note: ${notePath}
 - Browserbase session: ${result.artifacts.sessionId ?? 'N/A'}
 - Live view: ${result.artifacts.liveViewUrl ?? 'N/A'}
+- Replay URL: ${result.artifacts.replayUrl ?? 'N/A'}
 - Replay hint: ${result.artifacts.replayHint ?? 'N/A'}
 - Screenshots:
 ${screenshots}

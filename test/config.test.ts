@@ -21,9 +21,15 @@ describe('loadConfig', () => {
   });
 
   test('parses flags and since arg', () => {
-    const config = loadConfig(['run', '--json', '--force', '--since=7d'], {} as NodeJS.ProcessEnv);
+    const config = loadConfig(
+      ['loop', '--json', '--force', '--since=7d', '--daemon', '--open', '--interval-minutes=15'],
+      {} as NodeJS.ProcessEnv,
+    );
     expect(config.json).toBe(true);
     expect(config.force).toBe(true);
+    expect(config.daemon).toBe(true);
+    expect(config.open).toBe(true);
     expect(config.since).toBe('7d');
+    expect(config.loopIntervalMinutes).toBe(15);
   });
 });
