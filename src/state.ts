@@ -126,3 +126,32 @@ export function markTaskFailure(record: TaskStateRecord, errorMessage: string, c
   const next = Date.now() + minutes * 60_000;
   record.nextRetryAt = new Date(next).toISOString();
 }
+
+export interface PurgeResult {
+  removed: number;
+  kept: number;
+  removedKeys: string[];
+}
+
+/**
+ * Remove state records for tasks whose source notes no longer exist in the vault.
+ * Also removes records for notes that have been moved (different relPath).
+ */
+export function purgeOrphanedTasks(state: StateFile, existingRelPaths: Set<string>): PurgeResult {
+  const removedKeys: string[] = [];
+  let kept = 0;
+
+  for (const [key, record] of Object.entries(state.tasks)) {
+    if (!existingRelPaths.has(record.sourceFile)) {
+      removedKeys.push(key);
+    } else {
+      kept += 1;
+    }
+  }
+
+  for (const key of removedKeys) {
+    delete state.tasks[key];
+  }
+
+  return { removed: removedKeys.length, kept, removedKeys };
+}

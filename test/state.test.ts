@@ -19,9 +19,11 @@ const baseConfig: SignalForgeConfig = {
   maxSourcesPerTask: 3,
   maxRetries: 4,
   retryBaseMinutes: 5,
+  rateLimitMs: 0,
   loopIntervalMinutes: 60,
   browserbase: {},
   providers: {},
+  cerebras: { model: 'gpt-oss-120b' },
 };
 
 const note: VaultNote = {

@@ -23,7 +23,7 @@ export async function writeFinding(
     task,
     result,
     suggestedMove: suggestedMove(task, result),
-    openQuestions: buildOpenQuestions(task),
+    openQuestions: result.openQuestions.length > 0 ? result.openQuestions : buildOpenQuestions(task),
     notePath: task.sourceFile,
     tags: deriveTags(task),
     project: deriveProject(task),

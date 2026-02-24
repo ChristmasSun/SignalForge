@@ -34,6 +34,7 @@ project: "${project}"
 tags: [${tags.map((tag) => `"${escapeQuotes(tag)}"`).join(', ')}]
 confidence: ${result.confidence}
 mode: ${result.mode}
+llm_synthesized: ${result.llmSynthesized}
 ---
 
 # SignalForge Finding: ${task.query}

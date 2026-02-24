@@ -40,10 +40,12 @@ describe('writer integration', () => {
       maxSourcesPerTask: 3,
       maxRetries: 4,
       retryBaseMinutes: 5,
+      rateLimitMs: 0,
       loopIntervalMinutes: 60,
       loopMaxCycles: undefined,
       browserbase: {},
       providers: {},
+      cerebras: { model: 'gpt-oss-120b' },
     };
 
     const task: ResearchTask = {
@@ -76,6 +78,8 @@ describe('writer integration', () => {
       },
       confidence: 0.88,
       confidenceReasons: ['reason'],
+      openQuestions: ['What is the main use case?'],
+      llmSynthesized: true,
       warning: undefined,
     };
 

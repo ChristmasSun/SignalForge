@@ -38,12 +38,17 @@ export interface SignalForgeConfig {
   maxSourcesPerTask: number;
   maxRetries: number;
   retryBaseMinutes: number;
+  rateLimitMs: number;
   loopIntervalMinutes: number;
   loopMaxCycles?: number;
   browserbase: BrowserbaseConfig;
   providers: {
     serpApiKey?: string;
     tavilyApiKey?: string;
+  };
+  cerebras: {
+    apiKey?: string;
+    model: string;
   };
 }
 
@@ -76,6 +81,8 @@ export interface ResearchResult {
   artifacts: ResearchArtifacts;
   confidence: number;
   confidenceReasons: string[];
+  openQuestions: string[];
+  llmSynthesized: boolean;
   warning?: string;
 }
 

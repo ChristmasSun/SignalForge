@@ -140,10 +140,12 @@ function makeConfig(vaultDir: string, command: string, commandArgs: string[] = [
     maxSourcesPerTask: 3,
     maxRetries: 4,
     retryBaseMinutes: 1,
+    rateLimitMs: 0,
     loopIntervalMinutes: 60,
     loopMaxCycles: undefined,
     browserbase: {},
     providers: {},
+    cerebras: { model: 'gpt-oss-120b' },
   };
 }
 
@@ -155,6 +157,8 @@ function mockResearchResult(): ResearchResult {
     citations: ['[1] title - https://example.com'],
     confidence: 0.77,
     confidenceReasons: ['reason'],
+    openQuestions: ['What next?'],
+    llmSynthesized: false,
     warning: undefined,
     sources: [
       {

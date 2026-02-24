@@ -11,6 +11,7 @@ import {
   markTaskFailure,
   markTaskStarted,
   markTaskSuccess,
+  purgeOrphanedTasks,
   saveState,
   shouldRunTask,
 } from './state.ts';
@@ -63,6 +64,11 @@ export async function executeCommand(
 
   if (config.command === 'stop-loop') {
     await stopLoop(config, logger);
+    return;
+  }
+
+  if (config.command === 'purge') {
+    await runPurge(config, logger, resolvedDeps);
     return;
   }
 
@@ -191,6 +197,7 @@ async function runOnce(config: SignalForgeConfig, logger: Logger, deps: RunnerDe
         outputPath,
         mode: result.mode,
         confidence: result.confidence,
+        llmSynthesized: result.llmSynthesized,
         liveView: result.artifacts.liveViewUrl,
         sessionId: result.artifacts.sessionId,
       });
@@ -203,6 +210,11 @@ async function runOnce(config: SignalForgeConfig, logger: Logger, deps: RunnerDe
     }
 
     await saveState(config, state);
+
+    // Rate limit between tasks to avoid hammering search providers / LLM API
+    if (stats.processed < tasks.length && config.rateLimitMs > 0) {
+      await deps.wait(config.rateLimitMs);
+    }
   }
 
   stats.endedAt = new Date().toISOString();
@@ -329,6 +341,25 @@ date: ${new Date().toISOString().slice(0, 10)}
 - Ended at: ${stats.endedAt ?? ''}
 `;
   await fs.writeFile(outputPath, markdown, 'utf8');
+}
+
+async function runPurge(config: SignalForgeConfig, logger: Logger, deps: RunnerDeps): Promise<void> {
+  const state = await loadState(config);
+  const notes = await deps.loadVaultMarkdown(config.vaultDir);
+  const existingRelPaths = new Set(notes.map((note) => note.relPath));
+  const result = purgeOrphanedTasks(state, existingRelPaths);
+
+  if (result.removed === 0) {
+    logger.info('No orphaned tasks found. State is clean.', { total: result.kept });
+    return;
+  }
+
+  await saveState(config, state);
+  logger.info('Purged orphaned task records.', {
+    removed: result.removed,
+    kept: result.kept,
+    removedKeys: result.removedKeys,
+  });
 }
 
 function emptyStats(): RunStats {

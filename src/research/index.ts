@@ -2,6 +2,7 @@ import type { ResearchResult, ResearchTask, SignalForgeConfig } from '../types.t
 import { collectSourcesWithBrowserbase } from './browserbaseResearcher.ts';
 import { enrichSourcesWithContent } from './contentFetcher.ts';
 import { collectSourcesWithFallback } from './fallbackResearcher.ts';
+import { synthesizeWithLlm } from './llmSynthesis.ts';
 import { dedupeByDomain, rescoreWithContent } from './sourceUtils.ts';
 import { synthesizeResult } from './synthesis.ts';
 
@@ -41,17 +42,50 @@ export async function runResearch(
   const enriched = await enrichSourcesWithContent(unique);
   const scored = enriched.map(rescoreWithContent).sort((a, b) => b.qualityScore - a.qualityScore);
   const selected = scored.slice(0, config.maxSourcesPerTask);
-  const synthesis = synthesizeResult(mode, task, selected, warning);
+
+  const citations = selected.map((source, index) => `[${index + 1}] ${source.title} - ${source.url}`);
+
+  // Attempt LLM synthesis via Cerebras; fall back to heuristic if unavailable or fails
+  const llmResult = await synthesizeWithLlm(task, selected, mode, config, warning);
+
+  let summary: string;
+  let insights: string[];
+  let confidence: number;
+  let confidenceReasons: string[];
+  let openQuestions: string[];
+  let llmSynthesized: boolean;
+
+  if (llmResult) {
+    summary = llmResult.summary;
+    insights = llmResult.insights;
+    confidence = llmResult.confidence;
+    confidenceReasons = llmResult.confidenceReasons;
+    openQuestions = llmResult.openQuestions;
+    llmSynthesized = true;
+    if (warning) {
+      summary = `${summary} Warning: ${warning}`;
+    }
+  } else {
+    const heuristic = synthesizeResult(mode, task, selected, warning);
+    summary = heuristic.summary;
+    insights = heuristic.insights;
+    confidence = heuristic.confidence;
+    confidenceReasons = heuristic.confidenceReasons;
+    openQuestions = [];
+    llmSynthesized = false;
+  }
 
   return {
     mode,
-    summary: synthesis.summary,
-    insights: synthesis.insights,
-    citations: synthesis.citations,
+    summary,
+    insights,
+    citations,
     sources: selected,
     artifacts,
-    confidence: synthesis.confidence,
-    confidenceReasons: synthesis.confidenceReasons,
+    confidence,
+    confidenceReasons,
+    openQuestions,
+    llmSynthesized,
     warning,
   };
 }

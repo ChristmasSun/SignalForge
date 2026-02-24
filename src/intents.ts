@@ -8,9 +8,25 @@ const HINT_PATTERNS = [
   /\bresearch\s+(.+)/i,
   /\bwondering what\s+(.+)/i,
   /\b(?:something|smth) about\s+(.+)/i,
+  // Additional patterns
+  /\bexplore\s+(.+)/i,
+  /\bdig into\s+(.+)/i,
+  /\bcheck out\s+(.+)/i,
+  /\blearn (?:more )?about\s+(.+)/i,
+  /\bfigure out\s+(.+)/i,
+  /\bunderstand\s+(.+)/i,
+  /\bhow does\s+(.+)\s+work/i,
+  /\bwhat is\s+(.+)/i,
+  /\bwhat are\s+(.+)/i,
+  /\bwhy (?:is|are|does|do)\s+(.+)/i,
+  /\bneed to (?:know|understand|learn)\s+(.+)/i,
+  /\bcurious about\s+(.+)/i,
+  /\binvestigate\s+(.+)/i,
+  /\bfollow up on\s+(.+)/i,
+  /\bkeep an eye on\s+(.+)/i,
 ];
 
-const BAD_STARTS = new Set(['that', 'this', 'it', 'as', 'well', 'maybe', 'and']);
+const BAD_STARTS = new Set(['that', 'this', 'it', 'as', 'well', 'maybe', 'and', 'but', 'so', 'the', 'a', 'an']);
 
 export function extractResearchTasks(notes: VaultNote[], maxTasks = 5): ResearchTask[] {
   const tasks: ResearchTask[] = [];

@@ -20,6 +20,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
     readFlagValue(argv, '--lock-stale-minutes') ?? env.LOCK_STALE_MINUTES,
     180,
   );
+  const rateLimitMs = readPositiveInt(env.RATE_LIMIT_MS, 1500);
   const since = readSinceArg(argv);
 
   return {
@@ -40,6 +41,7 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
     maxSourcesPerTask,
     maxRetries,
     retryBaseMinutes,
+    rateLimitMs,
     loopIntervalMinutes,
     loopMaxCycles,
     browserbase: {
@@ -51,6 +53,10 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
       serpApiKey: env.SERPAPI_API_KEY,
       tavilyApiKey: env.TAVILY_API_KEY,
     },
+    cerebras: {
+      apiKey: env.CEREBRAS_API_KEY,
+      model: env.CEREBRAS_MODEL ?? 'gpt-oss-120b',
+    },
   };
 }
 
@@ -59,7 +65,7 @@ export function assertRunnableConfig(config: SignalForgeConfig): void {
     throw new Error('Missing vault directory. Set VAULT_DIR.');
   }
 
-  if (!['run', 'init', 'status', 'rerun', 'replay', 'loop', 'stop-loop'].includes(config.command)) {
+  if (!['run', 'init', 'status', 'rerun', 'replay', 'loop', 'stop-loop', 'purge'].includes(config.command)) {
     throw new Error(`Unknown command: ${config.command}`);
   }
 }

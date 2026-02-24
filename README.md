@@ -2,11 +2,12 @@
 
 SignalForge converts research intent in your Obsidian vault into structured, evidence-backed findings.
 
-It scans notes, detects investigation prompts, runs web research, synthesizes key insights with citations, writes findings into your inbox, and tracks task state over time.
+It scans notes, detects investigation prompts, runs web research, synthesizes key insights with citations via LLM (Cerebras), writes findings into your inbox, and tracks task state over time.
 
 ## Integrations
 
 - Obsidian vault markdown as the source of intents and destination for findings.
+- Cerebras for LLM-powered synthesis and open question generation (optional, free API key).
 - Browserbase for full browser-session research and replay metadata.
 - SerpAPI for search-provider fallback (optional).
 - Tavily for search-provider fallback (optional).
@@ -18,16 +19,21 @@ It scans notes, detects investigation prompts, runs web research, synthesizes ke
 - Keep research output inside your existing vault workflow.
 - Avoid duplicate work with stateful incremental processing.
 - Run continuously in loop/daemon mode for ongoing intelligence capture.
+- LLM-synthesized summaries with proper citations when Cerebras key is provided.
 
 ## Core Capabilities
 
 - Intent extraction from markdown notes:
   - explicit tags: `#investigate ...`
-  - natural-language triggers (examples below)
+  - natural-language triggers (20+ patterns including "explore", "dig into", "curious about", "how does X work", etc.)
 - Multi-source research pipeline:
   - Browserbase session mode when configured
   - fallback provider chain: SerpAPI -> Tavily -> Bing RSS
   - content extraction from source pages
+- LLM synthesis (Cerebras):
+  - evidence-backed summaries and insights with citations
+  - LLM-generated open questions for follow-up
+  - graceful heuristic fallback when no API key is set
 - Evidence quality controls:
   - domain-level dedupe
   - source quality scoring
@@ -37,6 +43,7 @@ It scans notes, detects investigation prompts, runs web research, synthesizes ke
   - task status tracking (`pending`, `in_progress`, `done`, `failed`)
   - retry/backoff for failed tasks
   - incremental skip for already-processed unchanged notes
+  - inter-task rate limiting to avoid hammering providers
 - Vault-native outputs:
   - finding markdown files in `Inbox/Findings`
   - backlinks injected into source notes
@@ -55,7 +62,7 @@ It scans notes, detects investigation prompts, runs web research, synthesizes ke
 2. Extract research tasks from explicit tags and intent phrases.
 3. Resolve sources via Browserbase or provider fallbacks.
 4. Fetch source content and rank/dedupe evidence.
-5. Synthesize insights, citations, and confidence.
+5. Synthesize insights, citations, and confidence via Cerebras LLM (or heuristics if no key).
 6. Write finding markdown and update task state.
 
 ## Installation
@@ -72,17 +79,22 @@ cp .env.example .env
 export VAULT_DIR="/absolute/path/to/your/ObsidianVault"
 ```
 
-2. Initialize workspace metadata:
+2. (Recommended) Get a free Cerebras API key at https://cloud.cerebras.ai and set it:
+```bash
+export CEREBRAS_API_KEY="your-key-here"
+```
+
+3. Initialize workspace metadata:
 ```bash
 bun run init
 ```
 
-3. Run once:
+4. Run once:
 ```bash
 bun run run
 ```
 
-4. Check status:
+5. Check status:
 ```bash
 bun run status
 ```
@@ -104,6 +116,14 @@ Natural-language examples:
 - `research workflow orchestration tools`
 - `wondering what retrieval-augmented generation means`
 - `something about edge caching strategies`
+- `explore vector database options`
+- `dig into LLM fine-tuning costs`
+- `curious about WebAssembly runtime performance`
+- `how does consistent hashing work`
+- `what is observability in distributed systems`
+- `learn more about data mesh architecture`
+- `figure out best practices for API versioning`
+- `follow up on the Rust async story`
 
 ## Commands
 
@@ -115,6 +135,8 @@ Natural-language examples:
   - Detect tasks only, no research execution.
 - `bun run status`
   - Show current task-state summary.
+- `bun run purge`
+  - Remove state records for notes that no longer exist in the vault.
 - `bun run rerun "<query>"`
   - Force rerun a specific query.
 - `bun run replay "<query-or-session-id>"`
@@ -156,6 +178,11 @@ Required:
 
 - `VAULT_DIR`
 
+LLM synthesis (recommended):
+
+- `CEREBRAS_API_KEY` - free at https://cloud.cerebras.ai
+- `CEREBRAS_MODEL` (default: `llama3.1-8b`)
+
 Research providers:
 
 - `BROWSERBASE_API_KEY`
@@ -170,6 +197,7 @@ Execution tuning:
 - `MAX_SOURCES_PER_TASK` (default `3`)
 - `MAX_RETRIES` (default `4`)
 - `RETRY_BASE_MINUTES` (default `5`)
+- `RATE_LIMIT_MS` (default `1500`) - delay between tasks in ms
 - `LOOP_INTERVAL_MINUTES` (default `60`)
 - `LOOP_MAX_CYCLES` (optional)
 - `STATE_FILE` (optional custom path)
@@ -180,8 +208,9 @@ Execution tuning:
 
 - Run `loop:daemon` under a process supervisor for long-running environments.
 - Use `--json` logs for ingestion into observability pipelines.
-- Keep Browserbase credentials in a secure secret manager.
+- Keep Browserbase and Cerebras credentials in a secure secret manager.
 - Review and rotate provider API keys regularly.
+- Run `bun run purge` periodically to clean up state from deleted notes.
 
 ## Validation
 

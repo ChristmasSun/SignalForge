@@ -42,13 +42,16 @@ function buildInsights(query: string, sources: SourceLink[]): string[] {
       continue;
     }
 
-    const sentence = firstUsefulSentence(text);
-    if (!sentence) {
-      continue;
+    // Pull up to 2 useful sentences per source for richer fallback coverage
+    const sentences = usefulSentences(text, 2);
+    for (const sentence of sentences) {
+      insights.push(`${sentence} [${i + 1}]`);
+      if (insights.length >= 5) {
+        break;
+      }
     }
 
-    insights.push(`${sentence} [${i + 1}]`);
-    if (insights.length >= 4) {
+    if (insights.length >= 5) {
       break;
     }
   }
@@ -59,17 +62,13 @@ function buildInsights(query: string, sources: SourceLink[]): string[] {
   return insights;
 }
 
-function firstUsefulSentence(text: string): string {
+function usefulSentences(text: string, max: number): string[] {
   const candidates = text
     .split(/[.!?]\s+/)
     .map((item) => item.trim())
     .filter((item) => item.length >= 40 && item.length <= 220);
 
-  if (candidates.length === 0) {
-    return '';
-  }
-
-  return candidates[0];
+  return candidates.slice(0, max);
 }
 
 function computeConfidence(sources: SourceLink[]): number {
