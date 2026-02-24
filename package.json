@@ -9,6 +9,8 @@
     "init": "bun run src/cli.ts init",
     "status": "bun run src/cli.ts status",
     "rerun": "bun run src/cli.ts rerun",
+    "replay": "bun run src/cli.ts replay",
+    "loop": "bun run src/cli.ts loop",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

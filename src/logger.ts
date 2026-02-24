@@ -30,3 +30,5 @@ export function createLogger(options: LoggerOptions) {
     error: (message: string, meta?: LogMeta) => emit('error', message, meta),
   };
 }
+
+export type Logger = ReturnType<typeof createLogger>;

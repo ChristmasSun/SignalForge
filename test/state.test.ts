@@ -15,6 +15,7 @@ const baseConfig: SignalForgeConfig = {
   maxSourcesPerTask: 3,
   maxRetries: 4,
   retryBaseMinutes: 5,
+  loopIntervalMinutes: 60,
   browserbase: {},
   providers: {},
 };

@@ -92,13 +92,21 @@ export function markTaskStarted(record: TaskStateRecord, noteMtimeMs: number): v
   record.lastNoteMtimeMs = noteMtimeMs;
 }
 
-export function markTaskSuccess(record: TaskStateRecord, findingPath: string, noteMtimeMs: number): void {
+export function markTaskSuccess(
+  record: TaskStateRecord,
+  findingPath: string,
+  noteMtimeMs: number,
+  artifacts?: { sessionId: string | null; liveViewUrl: string | null; replayHint: string | null },
+): void {
   record.status = 'done';
   record.attempts = 0;
   record.lastSuccessAt = new Date().toISOString();
   record.lastError = undefined;
   record.nextRetryAt = undefined;
   record.findingPath = findingPath;
+  record.lastSessionId = artifacts?.sessionId ?? null;
+  record.lastLiveViewUrl = artifacts?.liveViewUrl ?? null;
+  record.lastReplayHint = artifacts?.replayHint ?? null;
   record.lastNoteMtimeMs = noteMtimeMs;
 }
 

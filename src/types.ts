@@ -34,6 +34,8 @@ export interface SignalForgeConfig {
   maxSourcesPerTask: number;
   maxRetries: number;
   retryBaseMinutes: number;
+  loopIntervalMinutes: number;
+  loopMaxCycles?: number;
   browserbase: BrowserbaseConfig;
   providers: {
     serpApiKey?: string;
@@ -97,6 +99,9 @@ export interface TaskStateRecord {
   nextRetryAt?: string;
   lastNoteMtimeMs?: number;
   findingPath?: string;
+  lastSessionId?: string | null;
+  lastLiveViewUrl?: string | null;
+  lastReplayHint?: string | null;
   lastError?: string;
 }
 

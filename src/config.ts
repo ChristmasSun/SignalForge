@@ -13,6 +13,8 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
   const maxSourcesPerTask = readPositiveInt(env.MAX_SOURCES_PER_TASK, 3);
   const maxRetries = readPositiveInt(env.MAX_RETRIES, 4);
   const retryBaseMinutes = readPositiveInt(env.RETRY_BASE_MINUTES, 5);
+  const loopIntervalMinutes = readPositiveInt(readFlagValue(argv, '--interval-minutes') ?? env.LOOP_INTERVAL_MINUTES, 60);
+  const loopMaxCycles = readOptionalPositiveInt(readFlagValue(argv, '--max-cycles') ?? env.LOOP_MAX_CYCLES);
   const since = readSinceArg(argv);
 
   return {
@@ -29,6 +31,8 @@ export function loadConfig(argv = process.argv.slice(2), env = process.env): Sig
     maxSourcesPerTask,
     maxRetries,
     retryBaseMinutes,
+    loopIntervalMinutes,
+    loopMaxCycles,
     browserbase: {
       apiKey: env.BROWSERBASE_API_KEY,
       projectId: env.BROWSERBASE_PROJECT_ID,
@@ -46,7 +50,7 @@ export function assertRunnableConfig(config: SignalForgeConfig): void {
     throw new Error('Missing vault directory. Set VAULT_DIR.');
   }
 
-  if (!['run', 'init', 'status', 'rerun'].includes(config.command)) {
+  if (!['run', 'init', 'status', 'rerun', 'replay', 'loop'].includes(config.command)) {
     throw new Error(`Unknown command: ${config.command}`);
   }
 }
@@ -65,15 +69,30 @@ function readPositiveInt(rawValue: string | undefined, fallback: number): number
 }
 
 function readSinceArg(argv: string[]): string | undefined {
-  const sinceArg = argv.find((arg) => arg.startsWith('--since='));
-  if (!sinceArg) {
-    return undefined;
-  }
-
-  const value = sinceArg.slice('--since='.length).trim();
+  const value = readFlagValue(argv, '--since');
   if (!value) {
     return undefined;
   }
 
+  return value.trim();
+}
+
+function readFlagValue(argv: string[], flagName: string): string | undefined {
+  const prefixed = argv.find((arg) => arg.startsWith(`${flagName}=`));
+  if (!prefixed) {
+    return undefined;
+  }
+  return prefixed.slice(`${flagName}=`.length);
+}
+
+function readOptionalPositiveInt(rawValue: string | undefined): number | undefined {
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const value = Number(rawValue);
+  if (!Number.isInteger(value) || value <= 0) {
+    return undefined;
+  }
   return value;
 }
