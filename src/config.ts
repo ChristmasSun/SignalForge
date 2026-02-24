@@ -59,7 +59,7 @@ export function assertRunnableConfig(config: SignalForgeConfig): void {
     throw new Error('Missing vault directory. Set VAULT_DIR.');
   }
 
-  if (!['run', 'init', 'status', 'rerun', 'replay', 'loop'].includes(config.command)) {
+  if (!['run', 'init', 'status', 'rerun', 'replay', 'loop', 'stop-loop'].includes(config.command)) {
     throw new Error(`Unknown command: ${config.command}`);
   }
 }

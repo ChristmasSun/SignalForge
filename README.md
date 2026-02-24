@@ -77,6 +77,13 @@ Run loop as background daemon:
 VAULT_DIR="/path/to/vault" bun run src/cli.ts loop --daemon --interval-minutes=60
 ```
 
+Stop loop daemon:
+```bash
+VAULT_DIR="/path/to/vault" bun run src/cli.ts stop-loop
+# force kill if needed
+VAULT_DIR="/path/to/vault" bun run src/cli.ts stop-loop --force
+```
+
 ## Validation
 ```bash
 bun run typecheck

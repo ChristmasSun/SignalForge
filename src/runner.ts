@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { extractResearchTasks } from './intents.ts';
-import { acquireLoopLock } from './lock.ts';
+import { acquireLoopLock, stopLoopFromLock } from './lock.ts';
 import type { Logger } from './logger.ts';
 import { runResearch as runResearchDefault } from './research/index.ts';
 import {
@@ -58,6 +58,11 @@ export async function executeCommand(
 
   if (config.command === 'replay') {
     await showReplay(config, logger);
+    return;
+  }
+
+  if (config.command === 'stop-loop') {
+    await stopLoop(config, logger);
     return;
   }
 
@@ -256,6 +261,26 @@ async function showReplay(config: SignalForgeConfig, logger: Logger): Promise<vo
     }
     await openUrl(url, logger);
   }
+}
+
+async function stopLoop(config: SignalForgeConfig, logger: Logger): Promise<void> {
+  const result = await stopLoopFromLock(config.loopLockFile, config.force);
+  if (result.reason === 'not_running') {
+    logger.warn('No loop daemon is running.', { lockFile: config.loopLockFile });
+    return;
+  }
+
+  if (result.reason === 'stale_lock_cleaned') {
+    logger.info('Cleaned stale loop lock.', { lockFile: config.loopLockFile, pid: result.pid });
+    return;
+  }
+
+  if (result.reason === 'stopped') {
+    logger.info('Stopped loop daemon.', { lockFile: config.loopLockFile, pid: result.pid });
+    return;
+  }
+
+  logger.error('Failed to stop loop daemon.', { lockFile: config.loopLockFile, pid: result.pid });
 }
 
 function resolveRerunTasks(config: SignalForgeConfig, notes: VaultNote[]): ResearchTask[] {
