@@ -2,8 +2,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import Browserbase from '@browserbasehq/sdk';
 import { chromium } from 'playwright-core';
+import type { ResearchResult, SourceLink, ResearchTask, SignalForgeConfig } from '../types.ts';
 
-export async function researchWithBrowserbase(task, config, outputDir) {
+export async function researchWithBrowserbase(
+  task: ResearchTask,
+  config: SignalForgeConfig,
+  outputDir: string,
+): Promise<ResearchResult> {
+  if (!config.browserbase.apiKey || !config.browserbase.projectId) {
+    throw new Error('Missing Browserbase credentials.');
+  }
+
   const client = new Browserbase({ apiKey: config.browserbase.apiKey });
   const createParams = {
     projectId: config.browserbase.projectId,
@@ -20,12 +29,14 @@ export async function researchWithBrowserbase(task, config, outputDir) {
   await page.waitForTimeout(2000);
 
   const sources = await page.evaluate((limit) => {
-    const anchors = Array.from(document.querySelectorAll('a[data-testid="result-title-a"]'));
+    const anchors = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[data-testid="result-title-a"]'));
     return anchors.slice(0, limit).map((el) => ({
-      title: (el.textContent || '').trim(),
+      title: (el.textContent ?? '').trim(),
       url: el.href,
     }));
   }, config.maxSourcesPerTask);
+
+  const normalizedSources: SourceLink[] = sources.filter((item) => Boolean(item.url));
 
   const shotDir = path.join(outputDir, 'assets');
   await fs.mkdir(shotDir, { recursive: true });
@@ -37,8 +48,8 @@ export async function researchWithBrowserbase(task, config, outputDir) {
 
   return {
     mode: 'browserbase',
-    summary: `Collected ${sources.length} result link(s) in a Browserbase session.`,
-    sources,
+    summary: `Collected ${normalizedSources.length} result link(s) in a Browserbase session.`,
+    sources: normalizedSources,
     artifacts: {
       sessionId: session.id,
       liveViewUrl: live.debuggerFullscreenUrl,
@@ -48,7 +59,7 @@ export async function researchWithBrowserbase(task, config, outputDir) {
   };
 }
 
-function slug(value) {
+function slug(value: string): string {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

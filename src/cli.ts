@@ -1,12 +1,13 @@
-#!/usr/bin/env node
-import { loadConfig, assertRunnableConfig } from './config.js';
-import { loadVaultMarkdown } from './vault.js';
-import { extractResearchTasks } from './intents.js';
-import { runResearch } from './research/index.js';
-import { writeFinding } from './writer.js';
+#!/usr/bin/env bun
+import { loadConfig, assertRunnableConfig } from './config.ts';
+import { loadVaultMarkdown } from './vault.ts';
+import { extractResearchTasks } from './intents.ts';
+import { runResearch } from './research/index.ts';
+import { writeFinding } from './writer.ts';
+import type { SignalForgeConfig } from './types.ts';
 
-async function main() {
-  const config = loadConfig();
+async function main(): Promise<void> {
+  const config: SignalForgeConfig = loadConfig();
   assertRunnableConfig(config);
 
   if (config.command !== 'run') {
@@ -49,7 +50,8 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`[SignalForge] ${error.message}`);
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[SignalForge] ${message}`);
   process.exit(1);
 });

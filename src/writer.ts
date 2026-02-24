@@ -1,8 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { buildFindingMarkdown } from './templates/findingTemplate.js';
+import { buildFindingMarkdown } from './templates/findingTemplate.ts';
+import type { ResearchResult, ResearchTask, SignalForgeConfig } from './types.ts';
 
-export async function writeFinding(config, task, result) {
+export async function writeFinding(
+  config: SignalForgeConfig,
+  task: ResearchTask,
+  result: ResearchResult,
+): Promise<string> {
   const date = new Date().toISOString().slice(0, 10);
   const slug = task.query
     .toLowerCase()
@@ -27,7 +32,7 @@ export async function writeFinding(config, task, result) {
   return outputPath;
 }
 
-function scoreConfidence(result) {
+function scoreConfidence(result: ResearchResult): number {
   if (result.mode === 'browserbase' && result.sources.length >= 3) {
     return 0.8;
   }
@@ -37,14 +42,14 @@ function scoreConfidence(result) {
   return 0.45;
 }
 
-function suggestedMove(task, result) {
+function suggestedMove(task: ResearchTask, result: ResearchResult): string {
   if (result.sources.length === 0) {
     return `Re-run investigation for "${task.query}" with a refined prompt in your note using #investigate.`;
   }
   return `Review the top source, add one concrete next action under #execute for "${task.query}", then run SignalForge again.`;
 }
 
-function buildOpenQuestions(task) {
+function buildOpenQuestions(task: ResearchTask): string[] {
   return [
     `What is the strongest practical use-case of "${task.query}" for your current codeflow?`,
     'Which source is most credible and current?',

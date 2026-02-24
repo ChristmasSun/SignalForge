@@ -1,4 +1,6 @@
-export function buildFindingMarkdown(input) {
+import type { FindingTemplateInput } from '../types.ts';
+
+export function buildFindingMarkdown(input: FindingTemplateInput): string {
   const {
     date,
     task,
@@ -53,6 +55,6 @@ ${openQuestions.map((q) => `- ${q}`).join('\n')}
 `;
 }
 
-function escapeQuotes(value) {
+function escapeQuotes(value: string): string {
   return value.replace(/"/g, '\\"');
 }

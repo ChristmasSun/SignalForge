@@ -1,9 +1,11 @@
-function stripCdata(value) {
+import type { ResearchResult, SourceLink, ResearchTask } from '../types.ts';
+
+function stripCdata(value: string): string {
   return value.replace('<![CDATA[', '').replace(']]>', '').trim();
 }
 
-function parseBingRss(xml) {
-  const items = [];
+function parseBingRss(xml: string): SourceLink[] {
+  const items: SourceLink[] = [];
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
 
   for (const itemMatch of xml.matchAll(itemRegex)) {
@@ -28,20 +30,23 @@ function parseBingRss(xml) {
   return dedupe(items);
 }
 
-function dedupe(items) {
-  const seen = new Set();
-  const out = [];
+function dedupe(items: SourceLink[]): SourceLink[] {
+  const seen = new Set<string>();
+  const out: SourceLink[] = [];
+
   for (const item of items) {
     if (seen.has(item.url)) {
       continue;
     }
+
     seen.add(item.url);
     out.push(item);
   }
+
   return out;
 }
 
-async function fetchBingRss(query) {
+async function fetchBingRss(query: string): Promise<string> {
   const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&format=rss`;
   const response = await fetch(url, {
     headers: {
@@ -57,7 +62,7 @@ async function fetchBingRss(query) {
   return response.text();
 }
 
-export async function researchWithFallback(task, maxSourcesPerTask = 3) {
+export async function researchWithFallback(task: ResearchTask, maxSourcesPerTask = 3): Promise<ResearchResult> {
   try {
     const xml = await fetchBingRss(task.query);
     const links = parseBingRss(xml).slice(0, maxSourcesPerTask);

@@ -15,7 +15,7 @@ SignalForge turns rough research notes into auto-generated findings in your Obsi
 
 ## Setup
 ```bash
-npm install
+bun install
 cp .env.example .env
 ```
 
@@ -26,12 +26,17 @@ Then set env vars in your shell or `.env` loader:
 
 ## Run
 ```bash
-VAULT_DIR="/path/to/vault" npm run run
+VAULT_DIR="/path/to/vault" bun run run
 ```
 
 Dry run (extract tasks only):
 ```bash
-VAULT_DIR="/path/to/vault" npm run dry
+VAULT_DIR="/path/to/vault" bun run dry
+```
+
+Typecheck:
+```bash
+bun run typecheck
 ```
 
 ## Suggested note format

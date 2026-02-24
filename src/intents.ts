@@ -1,3 +1,5 @@
+import type { ResearchTask, VaultNote } from './types.ts';
+
 const EXPLICIT_INVESTIGATE = /#investigate\b(?::|\s+)?([^\n#]*)/gi;
 
 const HINT_PATTERNS = [
@@ -10,9 +12,9 @@ const HINT_PATTERNS = [
 
 const BAD_STARTS = new Set(['that', 'this', 'it', 'as', 'well', 'maybe', 'and']);
 
-export function extractResearchTasks(notes, maxTasks = 5) {
-  const tasks = [];
-  const seen = new Set();
+export function extractResearchTasks(notes: VaultNote[], maxTasks = 5): ResearchTask[] {
+  const tasks: ResearchTask[] = [];
+  const seen = new Set<string>();
 
   for (const note of notes) {
     collectExplicit(note, tasks, seen);
@@ -25,7 +27,7 @@ export function extractResearchTasks(notes, maxTasks = 5) {
   return tasks.slice(0, maxTasks);
 }
 
-function collectExplicit(note, tasks, seen) {
+function collectExplicit(note: VaultNote, tasks: ResearchTask[], seen: Set<string>): void {
   for (const match of note.content.matchAll(EXPLICIT_INVESTIGATE)) {
     const raw = (match[1] ?? '').trim();
     if (!raw) {
@@ -46,16 +48,17 @@ function collectExplicit(note, tasks, seen) {
   }
 }
 
-function collectHeuristic(note, tasks, seen) {
+function collectHeuristic(note: VaultNote, tasks: ResearchTask[], seen: Set<string>): void {
   const lines = note.content
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
 
   for (const line of lines) {
-    if (line.includes("#investigate")) {
+    if (line.includes('#investigate')) {
       continue;
     }
+
     for (const pattern of HINT_PATTERNS) {
       const match = line.match(pattern);
       if (!match) {
@@ -79,16 +82,17 @@ function collectHeuristic(note, tasks, seen) {
   }
 }
 
-function pushTask(tasks, seen, task) {
+function pushTask(tasks: ResearchTask[], seen: Set<string>, task: ResearchTask): void {
   const key = task.query.toLowerCase();
   if (seen.has(key)) {
     return;
   }
+
   seen.add(key);
   tasks.push(task);
 }
 
-function normalizeQuery(text) {
+function normalizeQuery(text: string): string {
   let value = text
     .replace(/^[:\-\s]+/, '')
     .replace(/["'`]+/g, '')
@@ -106,7 +110,7 @@ function normalizeQuery(text) {
   return value;
 }
 
-function isReasonableQuery(query) {
+function isReasonableQuery(query: string): boolean {
   if (!query || query.length < 3 || query.length > 80) {
     return false;
   }
