@@ -2,13 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import Browserbase from '@browserbasehq/sdk';
 import { chromium } from 'playwright-core';
-import type { ResearchResult, SourceLink, ResearchTask, SignalForgeConfig } from '../types.ts';
+import type { ResearchTask, SignalForgeConfig, SourceLink } from '../types.ts';
+import { normalizeSource } from './sourceUtils.ts';
 
-export async function researchWithBrowserbase(
+export async function collectSourcesWithBrowserbase(
   task: ResearchTask,
   config: SignalForgeConfig,
   outputDir: string,
-): Promise<ResearchResult> {
+): Promise<{ sources: SourceLink[]; artifacts: { sessionId: string; liveViewUrl: string | null; replayHint: string; screenshots: string[] } }> {
   if (!config.browserbase.apiKey || !config.browserbase.projectId) {
     throw new Error('Missing Browserbase credentials.');
   }
@@ -36,7 +37,9 @@ export async function researchWithBrowserbase(
     }));
   }, config.maxSourcesPerTask);
 
-  const normalizedSources: SourceLink[] = sources.filter((item) => Boolean(item.url));
+  const normalizedSources: SourceLink[] = sources
+    .map((item) => normalizeSource({ title: item.title, url: item.url }))
+    .filter((item): item is SourceLink => item !== null);
 
   const shotDir = path.join(outputDir, 'assets');
   await fs.mkdir(shotDir, { recursive: true });
@@ -47,12 +50,10 @@ export async function researchWithBrowserbase(
   await browser.close();
 
   return {
-    mode: 'browserbase',
-    summary: `Collected ${normalizedSources.length} result link(s) in a Browserbase session.`,
     sources: normalizedSources,
     artifacts: {
       sessionId: session.id,
-      liveViewUrl: live.debuggerFullscreenUrl,
+      liveViewUrl: live.debuggerFullscreenUrl ?? null,
       replayHint: `Recording available via Browserbase session ${session.id}`,
       screenshots: [screenshotPath],
     },

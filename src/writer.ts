@@ -22,24 +22,16 @@ export async function writeFinding(
     date,
     task,
     result,
-    confidence: scoreConfidence(result),
     suggestedMove: suggestedMove(task, result),
     openQuestions: buildOpenQuestions(task),
     notePath: task.sourceFile,
+    tags: deriveTags(task),
+    project: deriveProject(task),
   });
 
   await fs.writeFile(outputPath, markdown, 'utf8');
+  await insertBacklink(config.vaultDir, task.sourceFile, outputPath);
   return outputPath;
-}
-
-function scoreConfidence(result: ResearchResult): number {
-  if (result.mode === 'browserbase' && result.sources.length >= 3) {
-    return 0.8;
-  }
-  if (result.sources.length >= 2) {
-    return 0.65;
-  }
-  return 0.45;
 }
 
 function suggestedMove(task: ResearchTask, result: ResearchResult): string {
@@ -52,7 +44,50 @@ function suggestedMove(task: ResearchTask, result: ResearchResult): string {
 function buildOpenQuestions(task: ResearchTask): string[] {
   return [
     `What is the strongest practical use-case of "${task.query}" for your current codeflow?`,
-    'Which source is most credible and current?',
+    'Which cited source should you validate directly first?',
     'What should be tested in the next 7 days?',
   ];
+}
+
+function deriveTags(task: ResearchTask): string[] {
+  const queryWords = task.query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 2)
+    .slice(0, 3);
+  return ['signalforge', 'research', ...queryWords];
+}
+
+function deriveProject(task: ResearchTask): string {
+  const firstFolder = task.sourceFile.split('/')[0]?.trim();
+  if (!firstFolder || firstFolder.endsWith('.md')) {
+    return 'general';
+  }
+  return firstFolder.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+}
+
+async function insertBacklink(vaultDir: string, sourceFile: string, outputPath: string): Promise<void> {
+  const notePath = path.join(vaultDir, sourceFile);
+  const relativeFindingPath = path.relative(vaultDir, outputPath).replace(/\\/g, '/');
+  const linkLine = `- ${new Date().toISOString().slice(0, 10)}: [[${relativeFindingPath.replace(/\.md$/i, '')}]]`;
+
+  let content = '';
+  try {
+    content = await fs.readFile(notePath, 'utf8');
+  } catch {
+    return;
+  }
+
+  if (content.includes(linkLine)) {
+    return;
+  }
+
+  if (content.includes('## SignalForge Findings')) {
+    const updated = `${content.trimEnd()}\n${linkLine}\n`;
+    await fs.writeFile(notePath, updated, 'utf8');
+    return;
+  }
+
+  const updated = `${content.trimEnd()}\n\n## SignalForge Findings\n${linkLine}\n`;
+  await fs.writeFile(notePath, updated, 'utf8');
 }

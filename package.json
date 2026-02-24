@@ -6,7 +6,11 @@
     "start": "bun run src/cli.ts",
     "run": "bun run src/cli.ts run",
     "dry": "bun run src/cli.ts run --dry-run",
-    "typecheck": "tsc --noEmit"
+    "init": "bun run src/cli.ts init",
+    "status": "bun run src/cli.ts status",
+    "rerun": "bun run src/cli.ts rerun",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "keywords": [
     "obsidian",

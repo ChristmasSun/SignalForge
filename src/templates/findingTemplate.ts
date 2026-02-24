@@ -7,12 +7,18 @@ export function buildFindingMarkdown(input: FindingTemplateInput): string {
     result,
     suggestedMove,
     openQuestions,
-    confidence,
     notePath,
+    tags,
+    project,
   } = input;
 
   const sources = result.sources.length
-    ? result.sources.map((source) => `- [${source.title || source.url}](${source.url})`).join('\n')
+    ? result.sources
+        .map(
+          (source, index) =>
+            `- [${index + 1}] [${source.title || source.url}](${source.url}) (domain: ${source.domain}, quality: ${source.qualityScore})`,
+        )
+        .join('\n')
     : '- No sources captured';
 
   const screenshots = result.artifacts.screenshots.length
@@ -24,7 +30,9 @@ type: signalforge_finding
 date: ${date}
 query: "${escapeQuotes(task.query)}"
 source_note: "${escapeQuotes(task.sourceFile)}"
-confidence: ${confidence}
+project: "${project}"
+tags: [${tags.map((tag) => `"${escapeQuotes(tag)}"`).join(', ')}]
+confidence: ${result.confidence}
 mode: ${result.mode}
 ---
 
@@ -32,6 +40,9 @@ mode: ${result.mode}
 
 ## What changed
 ${result.summary}
+
+## Key insights
+${result.insights.length > 0 ? result.insights.map((item) => `- ${item}`).join('\n') : '- No synthesized insights available'}
 
 ## Why it matters
 This topic appeared in your notes and has been converted into a research task tied to your workflow.
@@ -41,6 +52,12 @@ ${suggestedMove}
 
 ## Evidence links
 ${sources}
+
+## Citation checks
+${result.citations.length > 0 ? result.citations.map((item) => `- ${item}`).join('\n') : '- No citation metadata available'}
+
+## Confidence breakdown
+${result.confidenceReasons.map((item) => `- ${item}`).join('\n')}
 
 ## Artifacts
 - Source note: ${notePath}

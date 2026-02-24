@@ -1,96 +1,10 @@
-import type { ResearchResult, SourceLink, ResearchTask } from '../types.ts';
+import type { ResearchTask, SignalForgeConfig, SourceLink } from '../types.ts';
+import { searchWithProviders } from './searchProviders.ts';
 
-function stripCdata(value: string): string {
-  return value.replace('<![CDATA[', '').replace(']]>', '').trim();
-}
-
-function parseBingRss(xml: string): SourceLink[] {
-  const items: SourceLink[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-
-  for (const itemMatch of xml.matchAll(itemRegex)) {
-    const item = itemMatch[1];
-    const titleMatch = item.match(/<title>([\s\S]*?)<\/title>/i);
-    const linkMatch = item.match(/<link>([\s\S]*?)<\/link>/i);
-
-    if (!titleMatch || !linkMatch) {
-      continue;
-    }
-
-    const title = stripCdata(titleMatch[1]);
-    const url = stripCdata(linkMatch[1]);
-
-    if (!title || !url) {
-      continue;
-    }
-
-    items.push({ title, url });
-  }
-
-  return dedupe(items);
-}
-
-function dedupe(items: SourceLink[]): SourceLink[] {
-  const seen = new Set<string>();
-  const out: SourceLink[] = [];
-
-  for (const item of items) {
-    if (seen.has(item.url)) {
-      continue;
-    }
-
-    seen.add(item.url);
-    out.push(item);
-  }
-
-  return out;
-}
-
-async function fetchBingRss(query: string): Promise<string> {
-  const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&format=rss`;
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Bing RSS failed (${response.status})`);
-  }
-
-  return response.text();
-}
-
-export async function researchWithFallback(task: ResearchTask, maxSourcesPerTask = 3): Promise<ResearchResult> {
-  try {
-    const xml = await fetchBingRss(task.query);
-    const links = parseBingRss(xml).slice(0, maxSourcesPerTask);
-
-    return {
-      mode: 'fallback',
-      summary: links.length
-        ? `Collected ${links.length} result link(s) using Bing RSS fallback research.`
-        : 'Could not collect search results in fallback mode.',
-      sources: links,
-      artifacts: {
-        sessionId: null,
-        liveViewUrl: null,
-        replayHint: null,
-        screenshots: [],
-      },
-    };
-  } catch {
-    return {
-      mode: 'fallback',
-      summary: 'Could not collect search results in fallback mode.',
-      sources: [],
-      artifacts: {
-        sessionId: null,
-        liveViewUrl: null,
-        replayHint: null,
-        screenshots: [],
-      },
-    };
-  }
+export async function collectSourcesWithFallback(
+  task: ResearchTask,
+  config: SignalForgeConfig,
+): Promise<SourceLink[]> {
+  const sources = await searchWithProviders(task, config);
+  return sources.slice(0, Math.max(config.maxSourcesPerTask * 2, config.maxSourcesPerTask));
 }
