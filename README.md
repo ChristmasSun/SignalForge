@@ -1,108 +1,195 @@
 # SignalForge
 
-SignalForge turns rough research notes into auto-generated findings in your Obsidian vault.
-Runtime: Bun `>=1.3.0`.
+SignalForge converts research intent in your Obsidian vault into structured, evidence-backed findings.
 
-## What It Does
-- Reads all markdown files in your vault.
-- Detects research intents from:
-  - explicit `#investigate ...` tags
-  - heuristic phrases like `read about X`, `wondering what Y is`, `something about Z`
-- Runs layered research:
-  - Browserbase session mode when API key + project ID are configured
-  - provider fallback chain: SerpAPI -> Tavily -> Bing RSS
-  - page content extraction for top sources
-- Scores and deduplicates sources by domain/quality.
-- Synthesizes insight bullets with citation checks and confidence breakdown.
-- Persists task state (`pending`/`in_progress`/`done`/`failed`) with retry backoff.
-- Supports incremental runs and `--since` filtering.
-- Writes structured findings to `Inbox/Findings` and back-links them to source notes.
+It scans notes, detects investigation prompts, runs web research, synthesizes key insights with citations, writes findings into your inbox, and tracks task state over time.
 
-## Setup
+## Integrations
+
+- Obsidian vault markdown as the source of intents and destination for findings.
+- Browserbase for full browser-session research and replay metadata.
+- SerpAPI for search-provider fallback (optional).
+- Tavily for search-provider fallback (optional).
+- Bing RSS as the final no-key fallback search path.
+
+## Why Use SignalForge
+
+- Turn scattered curiosity into actionable research artifacts.
+- Keep research output inside your existing vault workflow.
+- Avoid duplicate work with stateful incremental processing.
+- Run continuously in loop/daemon mode for ongoing intelligence capture.
+
+## Core Capabilities
+
+- Intent extraction from markdown notes:
+  - explicit tags: `#investigate ...`
+  - natural-language triggers (examples below)
+- Multi-source research pipeline:
+  - Browserbase session mode when configured
+  - fallback provider chain: SerpAPI -> Tavily -> Bing RSS
+  - content extraction from source pages
+- Evidence quality controls:
+  - domain-level dedupe
+  - source quality scoring
+  - confidence scoring with reasons
+  - citation list generation
+- Stateful execution:
+  - task status tracking (`pending`, `in_progress`, `done`, `failed`)
+  - retry/backoff for failed tasks
+  - incremental skip for already-processed unchanged notes
+- Vault-native outputs:
+  - finding markdown files in `Inbox/Findings`
+  - backlinks injected into source notes
+  - loop cycle summaries for scheduled runs
+
+## Typical Use Cases
+
+- Market and competitor tracking from product notes.
+- Technical due diligence from architecture brainstorms.
+- Founder/research operating cadence with daily loop runs.
+- Team knowledge ops: convert raw questions into reusable findings.
+
+## How It Works
+
+1. Scan vault markdown notes.
+2. Extract research tasks from explicit tags and intent phrases.
+3. Resolve sources via Browserbase or provider fallbacks.
+4. Fetch source content and rank/dedupe evidence.
+5. Synthesize insights, citations, and confidence.
+6. Write finding markdown and update task state.
+
+## Installation
+
 ```bash
 bun install
 cp .env.example .env
 ```
 
-Then set env vars in your shell or `.env` loader:
-- `VAULT_DIR` (required)
-- `BROWSERBASE_API_KEY` + `BROWSERBASE_PROJECT_ID` (for Browserbase mode)
-- `BROWSERBASE_CONTEXT_ID` (optional, persistent state)
-- `SERPAPI_API_KEY` and/or `TAVILY_API_KEY` (optional fallback providers)
+## Quick Start
+
+1. Set required env:
+```bash
+export VAULT_DIR="/absolute/path/to/your/ObsidianVault"
+```
+
+2. Initialize workspace metadata:
+```bash
+bun run init
+```
+
+3. Run once:
+```bash
+bun run run
+```
+
+4. Check status:
+```bash
+bun run status
+```
+
+## Intent Detection
+
+SignalForge detects both explicit and natural phrasing.
+
+Explicit pattern:
+
+```md
+#investigate best lightweight analytics for a B2B SaaS app
+```
+
+Natural-language examples:
+
+- `read about event-driven architecture patterns`
+- `look into SOC 2 automation options`
+- `research workflow orchestration tools`
+- `wondering what retrieval-augmented generation means`
+- `something about edge caching strategies`
 
 ## Commands
-Initialize directories/state:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts init
-```
 
-Run:
-```bash
-VAULT_DIR="/path/to/vault" bun run run
-```
+- `bun run init`
+  - Initialize findings directory and state file.
+- `bun run run`
+  - Run one full research pass.
+- `bun run dry`
+  - Detect tasks only, no research execution.
+- `bun run status`
+  - Show current task-state summary.
+- `bun run rerun "<query>"`
+  - Force rerun a specific query.
+- `bun run replay "<query-or-session-id>"`
+  - Show stored Browserbase replay metadata for a task.
+- `bun run replay "<query-or-session-id>" --open`
+  - Open replay/live URL automatically when available.
+- `bun run loop --interval-minutes=60 --max-cycles=8`
+  - Run scheduled in-process loop.
+- `bun run loop:daemon --interval-minutes=60`
+  - Start loop in detached daemon mode.
+- `bun run loop:stop`
+  - Stop daemon using lockfile PID.
+- `bun run loop:stop --force`
+  - Force-stop daemon (SIGKILL fallback path).
 
-Run with filters/options:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts run --since=7d --json
-VAULT_DIR="/path/to/vault" bun run src/cli.ts run --force
-VAULT_DIR="/path/to/vault" bun run dry
-```
+## Useful Flags
 
-Show task state summary:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts status
-```
+- `--since=7d` or `--since=2026-01-01`
+  - Process only recently modified notes.
+- `--json`
+  - Structured JSON logs (machine-readable).
+- `--force`
+  - Bypass incremental skip and rerun tasks.
 
-Rerun a specific query:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts rerun "letta code"
-```
+## Output Artifacts
 
-Replay Browserbase metadata for a prior task:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "letta code"
-# or by session id
-VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "bb_session_id"
-# auto-open replay/live url when available
-VAULT_DIR="/path/to/vault" bun run src/cli.ts replay "letta code" --open
-```
+- Findings:
+  - `<VAULT_DIR>/Inbox/Findings/YYYY-MM-DD - <query>.md`
+- Loop summaries:
+  - `<VAULT_DIR>/Inbox/Findings/Run Summaries/*.md`
+- Task state:
+  - `<VAULT_DIR>/.signalforge/state.json`
+- Loop lock:
+  - `<VAULT_DIR>/.signalforge/loop.lock`
 
-Run a scheduled loop (in-process):
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts loop --interval-minutes=60 --max-cycles=8
-```
+## Configuration
 
-Run loop as background daemon:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts loop --daemon --interval-minutes=60
-```
+Required:
 
-Stop loop daemon:
-```bash
-VAULT_DIR="/path/to/vault" bun run src/cli.ts stop-loop
-# force kill if needed
-VAULT_DIR="/path/to/vault" bun run src/cli.ts stop-loop --force
-```
+- `VAULT_DIR`
+
+Research providers:
+
+- `BROWSERBASE_API_KEY`
+- `BROWSERBASE_PROJECT_ID`
+- `BROWSERBASE_CONTEXT_ID` (optional)
+- `SERPAPI_API_KEY` (optional)
+- `TAVILY_API_KEY` (optional)
+
+Execution tuning:
+
+- `MAX_TASKS` (default `5`)
+- `MAX_SOURCES_PER_TASK` (default `3`)
+- `MAX_RETRIES` (default `4`)
+- `RETRY_BASE_MINUTES` (default `5`)
+- `LOOP_INTERVAL_MINUTES` (default `60`)
+- `LOOP_MAX_CYCLES` (optional)
+- `STATE_FILE` (optional custom path)
+- `LOOP_LOCK_FILE` (optional custom path)
+- `LOCK_STALE_MINUTES` (default `180`)
+
+## Production Notes
+
+- Run `loop:daemon` under a process supervisor for long-running environments.
+- Use `--json` logs for ingestion into observability pipelines.
+- Keep Browserbase credentials in a secure secret manager.
+- Review and rotate provider API keys regularly.
 
 ## Validation
+
 ```bash
 bun run typecheck
 bun test
 ```
 
-## Suggested note format
-```md
-- #investigate Letta code and how it can augment my codeflow
-- #investigate ZoComputer and practical use-cases
-```
+## License
 
-This tool also picks up natural phrases like:
-- `read about Letta code`
-- `wondering what ZoComputer is`
-- `something about ZoComputer`
-
-## State File
-- Default state path: `<VAULT_DIR>/.signalforge/state.json`
-- Stores retries, last success/failure timestamps, and finding links for each task.
-- Stores last Browserbase session metadata for `replay`.
-- Default lock file: `<VAULT_DIR>/.signalforge/loop.lock` to prevent overlapping loop workers.
+MIT
